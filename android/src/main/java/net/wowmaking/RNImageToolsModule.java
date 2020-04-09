@@ -105,7 +105,7 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void fitCenterInRect(String uriString, int width, int height, final Promise promise) {
+    public void fitCenterInRect(String uriString, float width, float height, final Promise promise) {
         Bitmap bmp = Utility.bitmapFromUriString(uriString, promise, reactContext);
         if (bmp == null) {
             return;
@@ -119,11 +119,11 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
         
         Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
         if (bmp.getWidth() > bmp.getHeight()) {
-            int newHeight = width / (bmp.getWidth()/bmp.getHeight());
+            float newHeight = width / (bmp.getWidth() / bmp.getHeight());
             Rect dstRect = new Rect(0, (height - newHeight) / 2, width, newHeight);
             canvas.drawBitmap(bmp, srcRect, dstRect, null);
         } else {
-            int newWidth = height / (bmp.getHeight()/bmp.getWidth());
+            float newWidth = height / (bmp.getHeight() / bmp.getWidth());
             Rect dstRect = new Rect((width - newWidth) / 2, 0, newWidth, height);
             canvas.drawBitmap(bmp, srcRect, dstRect, null);
         }
