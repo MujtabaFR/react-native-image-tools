@@ -118,13 +118,15 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
         canvas.drawRect(0, 0, width, height, rectPaint);
         
         Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
-        if (bmp.getWidth() > bmp.getHeight()) {
-            int newHeight = width / (bmp.getWidth() / bmp.getHeight());
-            Rect dstRect = new Rect(0, (height - newHeight) / 2, width, newHeight);
+        if (bmp.getWidth() > (bmp.getHeight() * (width / (float) height))) {
+            int newHeight = (int) ((float)width / ((float)bmp.getWidth() / (float) bmp.getHeight()));
+            int newY = (int) (height - newHeight) / 2;
+            Rect dstRect = new Rect(0, newY, width, newHeight + newY);
             canvas.drawBitmap(bmp, srcRect, dstRect, null);
         } else {
-            int newWidth = height / (bmp.getHeight() / bmp.getWidth());
-            Rect dstRect = new Rect((width - newWidth) / 2, 0, newWidth, height);
+            int newWidth = (int) ((float) height / ((float) bmp.getHeight() / (float) bmp.getWidth()));
+            int newX = (int) (width - newWidth) / 2;
+            Rect dstRect = new Rect(newX, 0, newWidth + newX, height);
             canvas.drawBitmap(bmp, srcRect, dstRect, null);
         }
 
