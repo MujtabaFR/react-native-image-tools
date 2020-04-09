@@ -33,6 +33,24 @@ RCT_EXPORT_METHOD(transform:(NSString *)imageURLString
               });
 }
 
+RCT_EXPORT_METHOD(fitCenterInRect:(NSString *)imageURLString
+                  width:(CGFloat)width
+                  height:(CGFloat)height
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
+{
+    UIImage *image = [self getUIImageFromURLString:imageURLString];
+    UIImage *resultImage = [self fitImageCenterInRect:image toWidth: width toHeight: height];
+    
+    NSString *imagePath = [self saveImage:resultImage withPostfix:@"fitted"];
+    
+    resolve(@{
+              @"uri": imagePath,
+              @"width": [NSNumber numberWithFloat:resultImage.size.width],
+              @"height": [NSNumber numberWithFloat:resultImage.size.height]
+              });
+}
+
 RCT_EXPORT_METHOD(crop:(NSString *)imageURLString
                   x:(CGFloat)x
                   y:(CGFloat)y
@@ -333,6 +351,30 @@ RCT_EXPORT_METHOD(createMaskFromShape:(NSDictionary*)options
     return [UIImage imageWithCGImage:cgImage];
 }
 
+- (UIImage*) fitImageCenterInRect:(UIImage *)image toWidth:(CGFloat)width toHeight:(CGFloat)height
+{
+    CGContextRef ctx = CGBitmapContextCreate(nil, width, height, CGImageGetBitsPerComponent(image.CGImage), 0, CGImageGetColorSpace(image.CGImage), kCGImageAlphaPremultipliedLast);
+    
+    CGContextSetFillColorWithColor(ctx, [UIColor whiteColor].CGColor);
+    CGContextFillRect(ctx, CGRectMake(0, 0, width, height));
+   
+    
+    if (image.size.width > image.size.height) {
+        CGFloat newHeight = width / (image.size.width / image.size.height);
+        CGRect dstRect = CGRectMake(0, (height - newHeight) / 2, width, newHeight);
+        CGContextDrawImage(ctx, dstRect, image.CGImage);
+    } else {
+        CGFloat newWidth = height / (image.size.height / image.size.width);
+        CGRect dstRect = CGRectMake((width - newWidth) / 2, 0, newWidth, height);
+        CGContextDrawImage(ctx, dstRect, image.CGImage);
+    }
+    
+    CGImageRef cgImage = CGBitmapContextCreateImage(ctx);
+    CGContextRelease(ctx);
+    
+    return [UIImage imageWithCGImage:cgImage];
+}
+
 - (UIImage*) cropImage:(UIImage *) image toRect:(CGRect) rect
 {
     CGImageRef imageRef = CGImageCreateWithImageInRect([image CGImage], rect);
@@ -346,7 +388,7 @@ RCT_EXPORT_METHOD(createMaskFromShape:(NSDictionary*)options
 {
     CGContextRef ctx = CGBitmapContextCreate(nil, width, height, CGImageGetBitsPerComponent(image.CGImage), 0, CGImageGetColorSpace(image.CGImage), kCGImageAlphaPremultipliedLast);
     
-    CGRect cropRect = [self calcRect:image.size forContainedSize:CGSizeMake(width, height)];;
+    CGRect cropRect = [self calcRect:image.size forContainedSize:CGSizeMake(width, height)];
     CGContextDrawImage(ctx, cropRect, image.CGImage);
 
     CGImageRef cgImage = CGBitmapContextCreateImage(ctx);
