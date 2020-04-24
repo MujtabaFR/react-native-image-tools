@@ -165,6 +165,45 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void mergeNoStretch(ReadableArray uriStrings, Promise promise) {
+        Bitmap firstBmp = Utility.bitmapFromUriString(uriStrings.getString(0), promise, reactContext);
+        if (firstBmp == null) {
+            return;
+        }
+        Bitmap editBmp = Bitmap.createBitmap(firstBmp.getWidth(), firstBmp.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(editBmp);
+        canvas.drawBitmap(firstBmp, new Matrix(), null);
+
+        for (int i = 1; i < uriStrings.size(); i++) {
+            Bitmap bmp = Utility.bitmapFromUriString(uriStrings.getString(i), promise, reactContext);
+            if (bmp == null) {
+                return;
+            }
+            Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
+            final float srcRatio = (float) bmp.getWidth() / (float) bmp.getHeight();
+            int newWidth = (int) (canvas.getWidth() * 0.65);
+            int newHeight = (int) (newWidth / srcRatio);
+            if (newHeight > (canvas.getHeight() * 0.8)) {
+                newHeight = (int) (canvas.getHeight() * 0.8);
+                newWidth = (int) (newHeight * srcRatio);
+            }
+            Rect dstRect = new Rect(
+                (canvas.getWidth() - newWidth) / 2,
+                (canvas.getHeight() - newHeight) / 2,
+                (canvas.getWidth() - newWidth) / 2 + newWidth,
+                (canvas.getHeight() - newHeight) / 2 + newHeight
+            );
+            canvas.drawBitmap(bmp, srcRect, dstRect, null);
+        }
+
+        File file = Utility.createRandomPNGFile(reactContext);
+        Utility.writeBMPToPNGFile(editBmp, file, promise);
+
+        final WritableMap map = Utility.buildImageReactMap(file, editBmp);
+        promise.resolve(map);
+    }
+
+    @ReactMethod
     public void createMaskFromShape(ReadableMap options, Promise promise) {
         final ReadableArray points = options.getArray("points");
         final int width = options.getInt("width");
