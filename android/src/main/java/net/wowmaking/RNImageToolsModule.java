@@ -105,6 +105,39 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void fitCenterInRect(String uriString, int width, int height, final Promise promise) {
+        Bitmap bmp = Utility.bitmapFromUriString(uriString, promise, reactContext);
+        if (bmp == null) {
+            return;
+        }
+        Bitmap editBmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(editBmp);
+        Paint rectPaint = new Paint();
+        rectPaint.setColor(Color.WHITE);
+        canvas.drawRect(0, 0, width, height, rectPaint);
+        
+        Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
+        if (bmp.getWidth() > (bmp.getHeight() * (width / (float) height))) {
+            int newHeight = (int) ((float)width / ((float)bmp.getWidth() / (float) bmp.getHeight()));
+            int newY = (int) (height - newHeight) / 2;
+            Rect dstRect = new Rect(0, newY, width, newHeight + newY);
+            canvas.drawBitmap(bmp, srcRect, dstRect, null);
+        } else {
+            int newWidth = (int) ((float) height / ((float) bmp.getHeight() / (float) bmp.getWidth()));
+            int newX = (int) (width - newWidth) / 2;
+            Rect dstRect = new Rect(newX, 0, newWidth + newX, height);
+            canvas.drawBitmap(bmp, srcRect, dstRect, null);
+        }
+
+        File file = Utility.createRandomPNGFile(reactContext);
+        Utility.writeBMPToPNGFile(editBmp, file, promise);
+
+        final WritableMap map = Utility.buildImageReactMap(file, editBmp);
+        promise.resolve(map);
+    }
+
+    @ReactMethod
     public void merge(ReadableArray uriStrings, Promise promise) {
         Bitmap firstBmp = Utility.bitmapFromUriString(uriStrings.getString(0), promise, reactContext);
         if (firstBmp == null) {
@@ -121,6 +154,45 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
             }
             Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
             Rect dstRect = new Rect(0, 0, canvas.getWidth(), canvas.getHeight());
+            canvas.drawBitmap(bmp, srcRect, dstRect, null);
+        }
+
+        File file = Utility.createRandomPNGFile(reactContext);
+        Utility.writeBMPToPNGFile(editBmp, file, promise);
+
+        final WritableMap map = Utility.buildImageReactMap(file, editBmp);
+        promise.resolve(map);
+    }
+
+    @ReactMethod
+    public void mergeNoStretch(ReadableArray uriStrings, float maxWidthRatio, float maxHeightRatio, Promise promise) {
+        Bitmap firstBmp = Utility.bitmapFromUriString(uriStrings.getString(0), promise, reactContext);
+        if (firstBmp == null) {
+            return;
+        }
+        Bitmap editBmp = Bitmap.createBitmap(firstBmp.getWidth(), firstBmp.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(editBmp);
+        canvas.drawBitmap(firstBmp, new Matrix(), null);
+
+        for (int i = 1; i < uriStrings.size(); i++) {
+            Bitmap bmp = Utility.bitmapFromUriString(uriStrings.getString(i), promise, reactContext);
+            if (bmp == null) {
+                return;
+            }
+            Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
+            final float srcRatio = (float) bmp.getWidth() / (float) bmp.getHeight();
+            int newWidth = (int) (canvas.getWidth() * maxWidthRatio);
+            int newHeight = (int) (newWidth / srcRatio);
+            if (newHeight > (canvas.getHeight() * maxHeightRatio)) {
+                newHeight = (int) (canvas.getHeight() * maxHeightRatio);
+                newWidth = (int) (newHeight * srcRatio);
+            }
+            Rect dstRect = new Rect(
+                (canvas.getWidth() - newWidth) / 2,
+                (canvas.getHeight() - newHeight) / 2,
+                (canvas.getWidth() - newWidth) / 2 + newWidth,
+                (canvas.getHeight() - newHeight) / 2 + newHeight
+            );
             canvas.drawBitmap(bmp, srcRect, dstRect, null);
         }
 
