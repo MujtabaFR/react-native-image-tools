@@ -165,7 +165,7 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void mergeNoStretch(ReadableArray uriStrings, Promise promise) {
+    public void mergeNoStretch(ReadableArray uriStrings, float maxWidthRatio, float maxHeightRatio, Promise promise) {
         Bitmap firstBmp = Utility.bitmapFromUriString(uriStrings.getString(0), promise, reactContext);
         if (firstBmp == null) {
             return;
@@ -181,10 +181,10 @@ public class RNImageToolsModule extends ReactContextBaseJavaModule {
             }
             Rect srcRect = new Rect(0, 0, bmp.getWidth(), bmp.getHeight());
             final float srcRatio = (float) bmp.getWidth() / (float) bmp.getHeight();
-            int newWidth = (int) (canvas.getWidth() * 0.65);
+            int newWidth = (int) (canvas.getWidth() * maxWidthRatio);
             int newHeight = (int) (newWidth / srcRatio);
-            if (newHeight > (canvas.getHeight() * 0.8)) {
-                newHeight = (int) (canvas.getHeight() * 0.8);
+            if (newHeight > (canvas.getHeight() * maxHeightRatio)) {
+                newHeight = (int) (canvas.getHeight() * maxHeightRatio);
                 newWidth = (int) (newHeight * srcRatio);
             }
             Rect dstRect = new Rect(
