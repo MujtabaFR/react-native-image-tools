@@ -144,6 +144,32 @@ RCT_EXPORT_METHOD(merge:(NSArray *)imageURLStrings
               });
 }
 
+RCT_EXPORT_METHOD(mergeNoStretch:(NSArray *)imageURLStrings
+                  maxWidthRatio:(CGFloat)maxWidthRatio
+                  maxHeightRatio:(CGFloat)maxHeightRatio
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
+{
+    NSInteger count = [imageURLStrings count];
+    NSMutableArray *images = [[NSMutableArray alloc] initWithCapacity:count];
+    for (NSInteger i = 0; i < count; i++) {
+        UIImage *image = [self getUIImageFromURLString:imageURLStrings[i]];
+        [images addObject:image];
+    }
+    
+    NSArray *imagesImmutable = [[NSArray alloc] initWithArray:images];
+    
+    UIImage *mergedImage = [self mergeImagesNoStretch:imagesImmutable maxWidthRatio:maxWidthRatio maxHeightRatio:maxHeightRatio];
+    
+    NSString *imagePath = [self saveImage:mergedImage withPostfix:@"merged"];
+
+    resolve(@{
+              @"uri": imagePath,
+              @"width": [NSNumber numberWithFloat:mergedImage.size.width],
+              @"height": [NSNumber numberWithFloat:mergedImage.size.height]
+              });
+}
+
 RCT_EXPORT_METHOD(delete:(NSString *)imageURLString
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejector:(RCTPromiseRejectBlock)reject)
@@ -407,6 +433,45 @@ RCT_EXPORT_METHOD(createMaskFromShape:(NSDictionary*)options
     
     for (UIImage *image in images) {
         CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), image.CGImage);
+    }
+    
+    CGImageRef cgImage = CGBitmapContextCreateImage(ctx);
+    CGContextRelease(ctx);
+    
+    return [UIImage imageWithCGImage:cgImage];
+}
+
+- (UIImage*) mergeImagesNoStretch:(NSArray *)images maxWidthRatio:(CGFloat)maxWidthRatio maxHeightRatio:(CGFloat)maxHeightRatio
+{
+    UIImage *firstImage = [images objectAtIndex:0];
+    CGFloat width = firstImage.size.width;
+    CGFloat height = firstImage.size.height;
+    
+    CGContextRef ctx = CGBitmapContextCreate(nil, width, height, CGImageGetBitsPerComponent(firstImage.CGImage), 0, CGImageGetColorSpace(firstImage.CGImage), kCGImageAlphaPremultipliedLast);
+    
+    int i = 0;
+    for (UIImage *image in images) {
+        if (i == 0) {
+            CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), image.CGImage);
+        } else {
+            CGFloat srcRatio = (CGFloat) image.size.width / image.size.height;
+            
+            int newWidth = (int) (width * (CGFloat) maxWidthRatio);
+            int newHeight = (int) (newWidth / (CGFloat) srcRatio);
+            if (newHeight > (height * (CGFloat) maxHeightRatio)) {
+                newHeight = (int) (height * (CGFloat) maxHeightRatio);
+                newWidth = (int) (newHeight * (CGFloat) srcRatio);
+            }
+            
+            CGRect dstRect = CGRectMake(
+                                        (width - newWidth) / 2,
+                                        (height - newHeight) / 2,
+                                        newWidth,
+                                        newHeight
+                            );
+            CGContextDrawImage(ctx, dstRect, image.CGImage);
+        }
+        i++;
     }
     
     CGImageRef cgImage = CGBitmapContextCreateImage(ctx);
